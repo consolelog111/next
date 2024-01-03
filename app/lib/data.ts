@@ -9,8 +9,11 @@ import {
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
+import { unstable_noStore as noStore } from 'next/cache';
+
 
 export async function fetchRevenue() {
+  noStore();
   // Add noStore() here prevent the response from being cached.
   // This is equivalent to in fetch(..., {cache: 'no-store'}).
 
@@ -18,14 +21,48 @@ export async function fetchRevenue() {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     const data = await sql<Revenue>`SELECT * FROM revenue`;
 
-    // console.log('Data fetch completed after 3 seconds.');
+    console.log('Data fetch completed after 3 seconds.');
 
     return data.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch revenue data.');
+  }
+}
+
+export async function fetchCardDataMy() {
+
+  try {
+    const invoiceAmountPromise = sql`SELECT sum(Amount) FROM invoices WHERE status = 'paid'` ;
+    const invoicePendingPromise = sql`SELECT sum(Amount) FROM invoices WHERE status = 'pending'`;
+    const invoiceCountPromise = sql`SELECT count(*) FROM invoices`;
+    const customerCountPromise = sql`SELECT count(*) FROM customers`;
+
+    const data = await Promise.all([
+      invoiceAmountPromise,
+      invoicePendingPromise,
+      invoiceCountPromise,
+      customerCountPromise,
+    ]);
+
+    console.log(data[2].rows[0])
+    
+    const countOfInvoices = Number(data[2].rows[0].count ?? '0');
+    const countOfCustomers = Number(data[3].rows[0].count ?? '0');
+    const numberOfInvoices = formatCurrency(data[0].rows[0].sum ?? '0');
+    const numberOfPending = formatCurrency(data[1].rows[0].sum ?? '0');
+    
+    return {
+      countOfInvoices,
+      countOfCustomers,
+      numberOfInvoices,
+      numberOfPending
+    };
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch revenue data.');

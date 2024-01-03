@@ -6,6 +6,7 @@ const {
   users,
 } = require('../app/lib/placeholder-data.js');
 const bcrypt = require('bcrypt');
+console.log('POSTGRES_URL:', process.env.POSTGRES_URL);
 
 async function seedUsers(client) {
   try {
